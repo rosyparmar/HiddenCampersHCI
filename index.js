@@ -147,7 +147,13 @@ router.get("/campsites", function(req,res){
 
 //GET request for adding a campsite
 router.get("/campsites/add", isLoggedIn, function(req,res){
-	res.render("campsite-new");
+	if(isLoggedIn) {
+		res.render("campsite-new");
+	}
+	else {
+		res.render("/login");
+	}
+	
 });
 
 //Creating a new campsite, POST
