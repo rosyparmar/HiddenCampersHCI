@@ -33,7 +33,6 @@ app.use(function(req, res, next){
 
 
 mongoose.connect("mongodb://sarthak:hiddencampers@ds117749.mlab.com:17749/hiddencampersdb");
-// mongoose.connect("mongodb://localhost/hidden_campers1");
 
 app.use (bodyParser.urlencoded({extended : true}));
 app.set("view engine", "ejs");
@@ -44,6 +43,6 @@ app.set('views', path.join(__dirname, '/public'));
 
 app.use(indexRoutes);
 
-app.listen(process.env.PORT, process.env.IP, function(){
+app.listen(process.env.PORT || 3000, process.env.IP, function(){
 	console.log ("Server started!");
 });
