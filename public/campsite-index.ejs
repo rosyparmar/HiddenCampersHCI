@@ -13,6 +13,8 @@
 	<link href="https://fonts.googleapis.com/css?family=Luckiest+Guy" rel="stylesheet">
 </head>
 <body>
+	<!-- Bootstrap Navbar -->
+
 	<nav class="navbar navbar-inverse navbar-fixed-top">
 		<div class="container-fluid">
 			<div class="navbar-header">
@@ -48,7 +50,10 @@
 			</div>
 		</div>
 	</nav>
+
+
 <div class = "container">
+	<!-- Jumbotron for the main welcome heading and the search box -->
 	<header class = "jumbotron">
 		<div class="container" id = "searchdesc">
 			<h1 id = "hiddencampersgreeting"><span class="glyphicon glyphicon-tent align-bottom" aria-hidden="true"></span> Welcome, Hidden Campers!</h1>
@@ -68,6 +73,8 @@
 			</div>
 		</div>
 	</header>
+
+	<!-- List of all campsites as thumbnails; Bootstrap design -->
 	<div class="row text-center campIndex">
 		<% campsites.forEach(function(campsite){ %>
 		<div class="col-md-3 col-sm-6">

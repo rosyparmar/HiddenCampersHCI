@@ -5,43 +5,41 @@ var Campsite = require ("./models/campsite");
 var Comment = require ("./models/comment");
 var User = require("./models/user");
 
-//Homepage, Search
+//Get request for the homepage
 router.get("/", function(req,res){
 	let noMatch = null;
-	if (req.query.search) {
-		const regex = new RegExp(escapeRegex(req.query.search), 'gi');
-		Campsite.find({location: regex}, function(err, allCampsites) {
-			
-			if (allCampsites.length < 1) {
-				noMatch = "No campgrounds found, please try again.";
-			}
-			camp = { 
-				campsites: allCampsites,
-				page: "campsites"
-			}
-			res.render("campsite-index", camp);  
-			
-		});
-	} else {
-    // Get all camgrounds from DB
+	if (!req.query.search) {
+    // Finding all campsites from the database
     Campsite.find({}, function(err, allCampsites) {
-
-
     	camp = { 
     		campsites: allCampsites,
     		page: "campsites"
     	}
     	res.render("campsite-index", camp);  
-    	
-    }); 
+    });
 }
-});  
+else {
+	Campsite.find({location: new RegExp(escapeRegex(req.query.search), 'gi')},
+		function(err, allCampsites) {
+			camp = { 
+				campsites: allCampsites,
+				page: "campsites"
+			}
+			res.render("campsite-index", camp);  
+
+		});
+}
+}); 
 
 
-
-// Get request for Logging in
+// GET request for Logging in
 router.get("/login", function(req,res){
 	res.render("login");
+});
+
+//GET request for registering a new user
+router.get("/register", function(req, res){
+	res.render("register");
 });
 
 // POST request for Logging in
@@ -59,12 +57,6 @@ router.post("/login", (req, res, next) => {
 });
 
 
-
-//GET request for registering a new user
-router.get("/register", function(req, res){
-	res.render("register");
-});
-
 //POST request for registering a new user
 router.post("/register", function(req, res){
 	var newUser = new User({
@@ -73,9 +65,7 @@ router.post("/register", function(req, res){
 		email : req.body.email,
 		username: req.body.username});
 
-	var userPassword = req.body.password;
-
-	User.register(newUser, userPassword, function(err, user){
+	User.register(newUser, req.body.password, function(err, user){
 		
 		passport.authenticate("local")(req, res, function(){ //Passport local authentication
 			res.redirect("/campsites"); 
@@ -89,9 +79,6 @@ router.get("/logout", function(req, res){
 	req.logout();
 	res.redirect("/campsites");
 });
-
-
-
 
 //Uploading image
 //Attribution : https://stackoverflow.com/questions/35635165/upload-images-to-node-js-using-multer-doesnt-work
@@ -120,30 +107,28 @@ cloudinary.config({
 
 //GET request for viewing list of campsites on homepage
 router.get("/campsites", function(req,res){
-	if (req.query.search){
-		const regex = new RegExp(escapeRegex(req.query.search), 'gi'); //Search function, defined at the end of file
-		Campsite.find({location : regex}, function(err, allCampsites){
-			
-			newCampsiteList = {
-				campsites : allCampsites,
-				currentUser : req.user
-			};
-			res.render("campsite-index", newCampsiteList);
-		});
-	}
-	else
-	{
-		Campsite.find({}, function(err, allCampsites){
-			
-			newCampsiteList = {
-				campsites : allCampsites,
-				currentUser : req.user
-			};
-			res.render("campsite-index",newCampsiteList);
-		});
-	}
-});
+	let noMatch = null;
+	if (!req.query.search) {
+    // Finding all campsites from the database
+    Campsite.find({}, function(err, allCampsites) {
+    	camp = { 
+    		campsites: allCampsites,
+    		page: "campsites"
+    	}
+    	res.render("campsite-index", camp);  
+    });
+}
+else {
+	Campsite.find({location: new RegExp(escapeRegex(req.query.search), 'gi')}, function(err, allCampsites) {
+		camp = { 
+			campsites: allCampsites,
+			page: "campsites"
+		}
+		res.render("campsite-index", camp);  
 
+	});
+}
+}); 
 
 //GET request for adding a campsite
 router.get("/campsites/add", isLoggedIn, function(req,res){
@@ -156,22 +141,31 @@ router.get("/campsites/add", isLoggedIn, function(req,res){
 	
 });
 
-//Creating a new campsite, POST
+//POST request for adding a campsite
 router.post("/campsites", isLoggedIn, upload.single('image'), function(req, res) {
 	cloudinary.v2.uploader.upload(req.file.path, function(err, result) {
-		if(err) {
-			
-			return res.redirect('back');
-		}
-		req.body.campsite.image = result.secure_url;
-		req.body.campsite.imageId = result.public_id;
-		req.body.campsite.author = {
+		var newImage = result.secure_url;
+		var newImageId = result.public_id;
+		var campName = req.body.campsite.name;
+		var campDesc = req.body.campsite.description;
+		var campLoc = req.body.campsite.location;
+		var campFeatures = req.body.campsite.features;
+		var campActivities = req.body.campsite.activities;
+
+		campsite.name = campName;
+		campsite.description = campDesc;
+		campsite.image = newImage;
+		campsite.imageId = newImageId;
+		campsite.author = {
 			id: req.user._id,
 			username: req.user.username
 		}
+		campsite.location = campLoc;
+		campsite.features = campFeatures;
+		campsite.activities = campActivities;
+
 		Campsite.create(req.body.campsite, function(err, campsite) {
 			if (err) {
-
 				return res.redirect('back');
 			}
 			res.redirect('/campsites/' + campsite.id);
@@ -179,21 +173,20 @@ router.post("/campsites", isLoggedIn, upload.single('image'), function(req, res)
 	});
 });
 
-// Show campsite
+// GET request for viewing a campsite
 router.get("/campsites/:id", function(req,res){
-	Campsite.findById(req.params.id).populate("comments").exec(function(err, foundCampsite){
-		
+	Campsite.findById(req.params.id)
+	.populate("comments")
+	.exec(function(err, foundCampsite){
 		camp = {
 			campsite : foundCampsite
 		};
 		res.render("campsite-show", camp);
-		
 	});
 });
 
-
-//Editing a campsite
-router.get("/campsites/:id/edit", campsiteOwnershipAuthentication,  function(req, res){
+// GET request for editing a campsite
+router.get("/campsites/:id/edit", campsiteAuth,  function(req, res){
 	Campsite.findById(req.params.id, function(err, foundCampsite){
 		camp = {
 			campsite : foundCampsite
@@ -203,75 +196,52 @@ router.get("/campsites/:id/edit", campsiteOwnershipAuthentication,  function(req
 });
 
 
-//Updating a campsite
+//PUT request for editing a campsite
 router.put("/campsites/:id", upload.single('image'), function(req, res){
 	Campsite.findById(req.params.id, async function(err, campsite){
-		
+
+		var campsiteName = req.body.campsite.name;
+		var campsiteDescription = req.body.campsite.description;
+		var campsiteLocation = req.body.campsite.location;
+		var campsiteFeaturs = req.body.campsite.features;
+		var campsiteActivities = req.body.campsite.activities;
+
 		if (req.file) {
-			try {
-				await cloudinary.v2.uploader.destroy(campsite.imageId);
-				var result = await cloudinary.v2.uploader.upload(req.file.path);
-				campsite.imageId = result.public_id;
-				campsite.image = result.secure_url;
-			} catch(err) {
-				req.flash("error", err.message);
-				return res.redirect("back");
-			}
+			await cloudinary.v2.uploader.destroy(campsite.imageId);
+			var result = await cloudinary.v2.uploader.upload(req.file.path);
+			var newId = result.public_id;
+			var newImage = result.secure_url;
 		}
-		campsite.name = req.body.campsite.name;
-		campsite.description = req.body.campsite.description;
-		campsite.location = req.body.campsite.location;
-		campsite.features = req.body.campsite.features;
-		campsite.activities = req.body.campsite.activities;
+
+		campsite.name = campsiteName;
+		campsite.description = campsiteDescription;
+		campsite.location = campsiteLocation;
+		campsite.features = campsiteFeaturs;
+		campsite.activities = campsiteActivities;
 		campsite.save();
-		req.flash("success","Successfully Updated!");
 		res.redirect("/campsites/" + campsite._id);
 		
 	});
 });
 
-
-//Deleting a campsite
+//DELETE request for deleting a campsite
 router.delete('/campsites/:id', function(req, res) {
 	Campsite.findById(req.params.id, async function(err, campsite) {
-		
-		try {
+		if(campsite){
 			await cloudinary.v2.uploader.destroy(campsite.imageId);
 			campsite.remove();
-			req.flash('success', 'Campsite deleted successfully!');
 			res.redirect('/campsites');
-		} catch(err) {
+		} else {
 			if(err) {
-				req.flash("error", err.message);
 				return res.redirect("back");
 			}
 		}
 	});
 });
 
-
-//Authentication to verify if the user is a campsite's owner
-function campsiteOwnershipAuthentication(req, res, next){
-	if(req.isAuthenticated()){
-		Campsite.findById(req.params.id, function(err, foundCampsite){
-			if(err){
-				res.redirect("back");
-			}  else {
-				if(foundCampsite.author.id.equals(req.user._id)) {
-					next();
-				} else {
-					res.redirect("back");
-				}
-			}
-		});
-	} else {
-		res.redirect("back");
-	}
-}
-
-
 //Attribution : https://stackoverflow.com/questions/432493/how-do-you-access-the-matched-groups-in-a-javascript-regular-expression
 //				https://stackoverflow.com/questions/3115150/how-to-escape-regular-expression-special-characters-using-javascript
+//Search helper function
 function escapeRegex(text) {
 	return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 };
@@ -279,15 +249,10 @@ function escapeRegex(text) {
 
 
 
-
-
-
 //***************** Comments ********************
-
-//New comment, GET
+//GET request for viewing a comment
 router.get("/campsites/:id/comments/new", isLoggedIn, function(req,res){
 	Campsite.findById(req.params.id, function(err, foundCampsite){
-
 		camp = {
 			campsite : foundCampsite
 		};
@@ -297,82 +262,98 @@ router.get("/campsites/:id/comments/new", isLoggedIn, function(req,res){
 });
 
 
-//New comment, POST
+//POST request for viewing a comment
 router.post("/campsites/:id/comments/", isLoggedIn, function(req, res){
 	Campsite.findById(req.params.id, function(err, campsite){
-		
+		var campsiteName = req.body.campsite.name;
+		var campsiteDescription = req.body.campsite.description;
+		var campsiteLocation = req.body.campsite.location;
+		var campsiteFeaturs = req.body.campsite.features;
+		var campsiteActivities = req.body.campsite.activities;
 		Comment.create(req.body.comment, function(err, comment){
-			if (err)
-			{
-				console.log(err);
-			}
-			else
-			{
-
-				comment.author.id = req.user._id;
-				comment.author.username = req.user.username;
-				comment.save();
-				campsite.comments.push(comment);
-				campsite.save();
-				res.redirect("/campsites/" + campsite._id);
-			}
+			var getAuthorId = req.user._id;
+			var getAuthorUsername = req.user.username;
+			comment.author.id = getAuthorId;
+			comment.author.username = getAuthorUsername
+			comment.save();
+			campsite.name = campsiteName;
+			campsite.description = campsiteDescription;
+			campsite.location = campsiteLocation;
+			campsite.features = campsiteFeaturs;
+			campsite.activities = campsiteActivities;
+			campsite.comments.push(comment);
+			campsite.save();
+			res.redirect("/campsites/" + campsite._id);
 		});
-		
-
+	
 	});
 });
 
 
-//Editing a comment
-router.get("/campsites/:id/comments/:comment_id/edit", commentOwnershipAuthentication , function(req, res){
+//GET request for editing a comment
+router.get("/campsites/:id/comments/:comment_id/edit", commentAuth , function(req, res){
 	Comment.findById(req.params.comment_id, function(err, foundComment){
-		
 		camp = {
 			campsite_id : req.params.id,
 			comment: foundComment
 		};
 		res.render("comment-edit", camp);
-
-		
 	});
 });
 
 
-//Updating a Comment
-router.put("/campsites/:id/comments/:comment_id", commentOwnershipAuthentication, function(req, res){
+//PUT request for editing a comment
+router.put("/campsites/:id/comments/:comment_id", commentAuth, function(req, res){
 	Comment.findByIdAndUpdate(req.params.comment_id, req.body.comment, function(err, updatedComment){
-		
 		res.redirect("/campsites/" + req.params.id);
 		
 	});
 });
 
-//Deleting a Comment
-router.delete("/campsites/:id/comments/:comment_id", commentOwnershipAuthentication,  function(req, res){
+//DELETE request for deleting a comment
+router.delete("/campsites/:id/comments/:comment_id", commentAuth,  function(req, res){
 	Comment.findByIdAndRemove(req.params.comment_id, function(err){
-		
 		res.redirect("/campsites/" + req.params.id);
-		
-
 	});
 });
 
 
+//GET request to find the user
+router.get("/user/:id", function(req,res){
+	User.findById(req.params.id)
+	.exec(function(err, foundUser){
+		Campsite.find().where("author.id").equals(foundUser._id).exec((err, allCampsites) => {
+			camp = {
+				campsites : allCampsites,
+				user : foundUser
+			};
+			res.render("userProfile", camp);
+		});
+		
+	});
+});
 
 
 //Authentication to verify if the comment's owner is the user
-function commentOwnershipAuthentication(req, res, next){
+function commentAuth(req, res, next){
 	if(req.isAuthenticated()){
 		Comment.findById(req.params.comment_id, function(err, foundComment){
-			if(err){
-				res.redirect("back");
-			}  else {
-				if(foundComment.author.id.equals(req.user._id)) {
-					next();
-				} else {
-					res.redirect("back");
-				}
-			}
+			if(foundComment.author.id.equals(req.user._id)) {
+				next();
+			} 
+		});
+	} else {
+		res.redirect("back");
+	}
+}
+
+//Authentication to verify if the user is a campsite's owner
+function campsiteAuth(req, res, next){
+	if(req.isAuthenticated()){
+		Campsite.findById(req.params.id, function(err, foundCampsite){
+			if(foundCampsite.author.id.equals(req.user._id)) {
+				next();
+			} 
 		});
 	} else {
 		res.redirect("back");
@@ -380,35 +361,14 @@ function commentOwnershipAuthentication(req, res, next){
 }
 
 
-
-router.get("/user/:id", function(req,res){
-	
-	User.findById(req.params.id).exec(function(err, foundUser){
-		
-
-		Campsite.find().where("author.id").equals(foundUser._id).exec((err, allCampsites) => {
-
-			
-			camp = {
-				campsites : allCampsites,
-				user : foundUser
-			};
-			res.render("userProfile", camp);
-
-			
-		});
-		
-	});
-});
-
-
-
 //Authentication to verify if the user is logged in
 function isLoggedIn(req, res, next){
 	if(req.isAuthenticated()){
 		return next();
 	}
-	res.redirect("/login");
+	else {
+		res.redirect("/login");
+	}
 }
 
 module.exports = router;

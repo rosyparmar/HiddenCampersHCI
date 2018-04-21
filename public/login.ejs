@@ -13,6 +13,7 @@
 	<link href="https://fonts.googleapis.com/css?family=Luckiest+Guy" rel="stylesheet">
 </head>
 <body>
+	<!-- Bootstrap Navbar -->
 	<nav class="navbar navbar-inverse navbar-fixed-top">
 		<div class="container-fluid">
 			<div class="navbar-header">
@@ -73,20 +74,18 @@
 	</div>
 </nav>
 
-<!-- 	If the credentials of the user match against the credentials in the database, it succesfully logs in the user. -->
+<!-- Form for logging in up -->
 <div class="container">
 	<div class="row">
 		<h2>Login</h2>
 		<div class="editCampsite">
 			<form action="/login" method="POST">
-				<!-- Username of all the users is unique and a required field. -->
 				<div class="form-group">
 					<input type="text"
 					class="form-control" 
 					placeholder="Username"
 					name="username" required>
 				</div>
-				<!--  Password  -->
 				<div class="form-group">
 					<input type="password"
 					class="form-control" 

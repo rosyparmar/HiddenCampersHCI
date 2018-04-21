@@ -13,7 +13,7 @@
 	<link href="https://fonts.googleapis.com/css?family=Luckiest+Guy" rel="stylesheet">
 </head>
 <body>
-
+<!-- Bootstrap Navbar -->
 	<nav class="navbar navbar-inverse navbar-fixed-top">
 		<div class="container-fluid">
 			<div class="navbar-header">
@@ -74,7 +74,7 @@
 	</div>
 </nav>
 
-
+<!-- Form to add a new comment -->
 <div class="container">
 	<div class="row">
 		<h1 >Add new Comment</h1>
@@ -82,20 +82,24 @@
 			<form action="/campsites/<%= campsite._id %>/comments" method="POST">
 				<div class="form-group">
 					<input class="form-control"
-					       type="text"
-					       name="comment[text]"
-					       placeholder="text">
+					type="text"
+					name="comment[text]"
+					placeholder="text">
 				</div>
-
 				<div class="form-group">
-					<button class="btn btn-success btn-block">
+					<button class="btn btn-primary btn-block">
 						Submit!
-				</button>
+					</button>
+				</div>
+				<div class="form-group">
+					<a class="btn btn-primary btn-block" href="/campsites/<%= campsite._id %>">Go Back</a>
 				</div>
 			</form>
-			<a href="/campsites">Go back</a>
+
 		</div>
+		
 	</div>
+</div>
 </div>
 </body>
 </html>
